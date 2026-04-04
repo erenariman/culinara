@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+ENV/
+.coverage
+.cache/
+.pytest_cache/
+*.log
+
+# Environment variables
+.env
+
+# IDE - Pycharm
+.idea/
+
+# OS specific
+.DS_Store
+Thumbs.db

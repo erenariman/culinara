@@ -1,0 +1,84 @@
+[importlinter]
+root_package = src
+include_external_packages = True
+
+# ---------- High-level layering ----------
+[importlinter:contract:layers_hexagonal]
+name = Enforce hexagonal layering
+type = layers
+layers =
+    src.presentation
+    src.application
+    src.domain
+
+# ---------- Application sublayers ----------
+[importlinter:contract:layers_application]
+name = Application sublayers
+type = layers
+layers =
+    src.application.usecases
+    src.application.ports
+    src.application.dtos
+    src.domain
+
+# ---------- Presentation boundaries ----------
+[importlinter:contract:forbid_presentation_to_adapters]
+name = Presentation must not import adapters directly
+type = forbidden
+source_modules = src.presentation
+forbidden_modules =
+    src.adapters.database.postgresql.repositories
+    src.adapters.database.postgresql.models
+
+# ---------- Application boundaries ----------
+[importlinter:contract:forbid_application_to_adapters]
+name = Application must not import Adapters or Infrastructure
+type = forbidden
+source_modules = src.application
+forbidden_modules =
+    src.adapters
+    src.infrastructure
+
+[importlinter:contract:application_pure_from_frameworks]
+name = Application must not import frameworks / UI / DB
+type = forbidden
+source_modules = src.application
+forbidden_modules =
+    sqlalchemy
+    fastapi
+    starlette
+    src.presentation
+
+# ---------- Domain purity ----------
+[importlinter:contract:domain_pure_from_frameworks]
+name = Domain must not import anything outside
+type = forbidden
+source_modules = src.domain
+forbidden_modules =
+    fastapi
+    starlette
+    sqlalchemy
+    src.application
+    src.presentation
+    src.adapters
+    src.infrastructure
+
+# ---------- Adapters isolation ----------
+[importlinter:contract:adapters_do_not_import_presentation]
+name = Adapters must not import presentation
+type = forbidden
+source_modules = src.adapters
+forbidden_modules = src.presentation
+
+[importlinter:contract:adapters_no_usecases]
+name = Adapters must not import UseCases (only ports and domain)
+type = forbidden
+source_modules = src.adapters
+forbidden_modules = src.application.usecases
+
+# ---------- Infrastructure isolation ----------
+[importlinter:contract:infrastructure_no_presentation]
+name = Infrastructure must not import presentation logic
+type = forbidden
+source_modules = src.infrastructure
+forbidden_modules = src.presentation
