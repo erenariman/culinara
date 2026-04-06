@@ -45,7 +45,7 @@ async def seed_admin():
             
             user.is_superuser = True
             user.is_active = True
-            await repo.update(user)
+            await user_repo.update(user)
             await session.commit()
             
             print(f"Successfully created admin user: {user.id}")
