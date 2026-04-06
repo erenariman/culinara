@@ -4,6 +4,7 @@ import os
 import uuid
 from datetime import datetime
 from slugify import slugify
+from sqlalchemy import select
 
 # Add project root to path
 sys.path.append(os.getcwd())
@@ -12,7 +13,7 @@ from src.adapters.database.postgresql.database import AsyncSessionLocal
 from src.adapters.database.postgresql.repositories.recipe_repository import PostgresRecipeRepository
 from src.adapters.database.postgresql.repositories.ingredient_repository import PostgresIngredientRepository
 from src.adapters.database.postgresql.repositories.user_repository import PostgresUserRepository
-from src.domain.entities.recipe import Recipe, RecipeItem, RecipeInstruction, RecipeStatus
+from src.domain.entities.recipe import Recipe, RecipeItem, RecipeInstruction, RecipeStatus, RecipeCategory, DifficultyLevel
 from src.domain.entities.units import UnitType
 
 async def seed_recipes():
@@ -28,24 +29,34 @@ async def seed_recipes():
             print("Admin user not found. Please run seed_admin.py first.")
             return
         
-        print(f"Using admin user: {admin.username} (ID: {admin.id})")
+        # Mappings for Turkish terms to Domain Enums
+        category_map = {
+            "Çorba": RecipeCategory.SOUP,
+            "Kahvaltılık": RecipeCategory.BREAKFAST,
+            "Ana Yemek": RecipeCategory.MAIN_COURSE,
+            "Meze": RecipeCategory.APPETIZER,
+            "Tatlı": RecipeCategory.DESSERT,
+            "Salata": RecipeCategory.SALAD
+        }
         
-        # Helpers to fetch ingredients
+        difficulty_map = {
+            "Kolay": DifficultyLevel.EASY,
+            "Orta": DifficultyLevel.MEDIUM,
+            "Zor": DifficultyLevel.HARD
+        }
+        
+        # Helper to fetch ingredients
         async def get_ing(name):
             ing = await ing_repo.get_by_name(name)
-            if not ing:
-                print(f"CRITICAL: Ingredient '{name}' not found!")
             return ing
 
-        # RECIPES DATA
         recipes_to_add = [
-            # 1. Mercimek Çorbası
             {
                 "title": "Süzme Mercimek Çorbası",
                 "description": "Klasik, pürüzsüz ve besleyici Türk usulü restorant mercimek çorbası.",
                 "category": "Çorba",
                 "difficulty": "Kolay",
-                "diet_type": "Hepçil",
+                "diet_type": None,
                 "prep_time": 10,
                 "cook_time": 25,
                 "servings": 4,
@@ -68,11 +79,10 @@ async def seed_recipes():
                     "Pişen çorbayı pürüzsüz olana kadar blenderdan geçirin."
                 ]
             },
-            # 2. Menemen
             {
                 "title": "Menemen",
                 "description": "Kahvaltıların vazgeçilmezi, sulu ve lezzetli domatesli biberli yumurta.",
-                "category": "Kahvaltı",
+                "category": "Kahvaltılık",
                 "difficulty": "Kolay",
                 "diet_type": "Vejetaryen",
                 "prep_time": 5,
@@ -93,13 +103,12 @@ async def seed_recipes():
                     "Yumurtalar çok kurumadan ocaktan alın."
                 ]
             },
-            # 3. Karnıyarık
             {
                 "title": "Karnıyarık",
                 "description": "Patlıcan ve kıymanın enfes uyumu, geleneksel bir ana yemek.",
                 "category": "Ana Yemek",
                 "difficulty": "Orta",
-                "diet_type": "Hepçil",
+                "diet_type": None,
                 "prep_time": 30,
                 "cook_time": 30,
                 "servings": 4,
@@ -120,11 +129,10 @@ async def seed_recipes():
                     "Salçalı su hazırlayıp üzerine dökün ve fırında pişirin."
                 ]
             },
-            # 4. Kısır
             {
                 "title": "Hatay Usulü Kısır",
                 "description": "Bol ekşili, taze yeşillikli ve lezzetli bir Anadolu mezesi.",
-                "category": "Salata / Meze",
+                "category": "Meze",
                 "difficulty": "Kolay",
                 "diet_type": "Vegan",
                 "prep_time": 20,
@@ -148,11 +156,10 @@ async def seed_recipes():
                     "Tüm malzemeleri karıştırıp soğuk servis yapın."
                 ]
             },
-            # 5. Zeytinyağlı Taze Fasulye
             {
                 "title": "Zeytinyağlı Taze Fasulye",
                 "description": "Hafif, sağlıklı ve tam yaz aylarına uygun bir zeytinyağlı klasiği.",
-                "category": "Zeytinyağlı",
+                "category": "Ana Yemek",
                 "difficulty": "Kolay",
                 "diet_type": "Vegan",
                 "prep_time": 15,
@@ -171,15 +178,243 @@ async def seed_recipes():
                     "Domatesleri ve fasulyeleri ekleyin.",
                     "Şeker ve tuzu ekleyip fasulyeler yumuşayana kadar kendi suyunda pişirin."
                 ]
+            },
+            {
+                "title": "Ezogelin Çorbası",
+                "description": "Anadolu mutfağının en sevilen, bol baharatlı ve doyurucu çorbası.",
+                "category": "Çorba",
+                "difficulty": "Orta",
+                "diet_type": None,
+                "prep_time": 10,
+                "cook_time": 30,
+                "servings": 6,
+                "ingredients": [
+                    ("Kırmızı Mercimek", 1, UnitType.GLASS_WATER),
+                    ("Pirinç", 2, UnitType.TBS),
+                    ("Bulgur", 2, UnitType.TBS),
+                    ("Domates Salçası", 1, UnitType.TBS),
+                    ("Tereyağı", 1, UnitType.TBS),
+                    ("Nane", 1, UnitType.TBS),
+                    ("Pul Biber", 1, UnitType.TSP),
+                    ("Tuz", 1, UnitType.TSP),
+                ],
+                "steps": [
+                    "Mercimek, pirinç ve bulguru yıkayıp tencereye alın.",
+                    "Üzerine sıcak su ekleyip tüm bakliyatlar yumuşayana kadar pişirin.",
+                    "Ayrı bir tavada tereyağını eritip salça ve baharatları kavurun.",
+                    "Sosunu çorbaya ekleyip 5 dakika daha kaynatın."
+                ]
+            },
+            {
+                "title": "İzmir Köfte",
+                "description": "Fırında patates ve köftenin sosla buluştuğu eşsiz bir lezzet.",
+                "category": "Ana Yemek",
+                "difficulty": "Orta",
+                "diet_type": None,
+                "prep_time": 25,
+                "cook_time": 40,
+                "servings": 4,
+                "ingredients": [
+                    ("Dana Kıyma", 400, UnitType.GRAM),
+                    ("Patates", 3, UnitType.PIECE),
+                    ("Soğan", 1, UnitType.PIECE),
+                    ("Ekmek", 1, UnitType.PIECE),
+                    ("Yumurta", 1, UnitType.PIECE),
+                    ("Domates Salçası", 1, UnitType.TBS),
+                    ("Tuz", 1, UnitType.TSP),
+                    ("Karabiber", 0.5, UnitType.TSP),
+                ],
+                "steps": [
+                    "Kıyma, rendelenmiş soğan, yumurta ve ekmekle köfte harcını yoğurun.",
+                    "Patatesleri elma dilim doğrayıp hafifçe kızartın.",
+                    "Köftelere şekil verip hafifçe kızartın.",
+                    "Fırın tepsisine dizip üzerine salçalı su dökerek fırınlayın."
+                ]
+            },
+            {
+                "title": "Tane Tane Pirinç Pilavı",
+                "description": "Tam ölçüsünde, asla yapışmayan tereyağlı şehriyeli pilav.",
+                "category": "Ana Yemek",
+                "difficulty": "Orta",
+                "diet_type": "Vejetaryen",
+                "prep_time": 20,
+                "cook_time": 15,
+                "servings": 4,
+                "ingredients": [
+                    ("Pirinç", 2, UnitType.GLASS_WATER),
+                    ("Tereyağı", 2, UnitType.TBS),
+                    ("Ayçiçek Yağı", 1, UnitType.TBS),
+                    ("Tuz", 1.5, UnitType.TSP),
+                ],
+                "steps": [
+                    "Pirinçleri sıcak tuzlu suda 20 dakika bekletip süzün.",
+                    "Yağları tencerede ısıtıp pirinçleri şeffaflaşana kadar kavurun.",
+                    "Üzerine 3 su bardağı sıcak su ekleyip suyunu çekene kadar pişirin.",
+                    "Demlenmesi için üzerine kağıt havlu koyup 15 dakika bekleyin."
+                ]
+            },
+            {
+                "title": "Kabak Mücver",
+                "description": "Hafif ve lezzetli, dışı çıtır içi yumuşak kabak kızartması.",
+                "category": "Meze",
+                "difficulty": "Orta",
+                "diet_type": "Vejetaryen",
+                "prep_time": 15,
+                "cook_time": 15,
+                "servings": 4,
+                "ingredients": [
+                    ("Kabak", 3, UnitType.PIECE),
+                    ("Yumurta", 2, UnitType.PIECE),
+                    ("Un", 3, UnitType.TBS),
+                    ("Beyaz Peynir", 100, UnitType.GRAM),
+                    ("Dereotu", 0.5, UnitType.BUNCH),
+                    ("Tuz", 1, UnitType.TSP),
+                ],
+                "steps": [
+                    "Kabakları rendeleyip suyunu iyice sıkın.",
+                    "Diğer tüm malzemeleri geniş bir kapta karıştırın.",
+                    "Kızgın yağda kaşıkla dökerek arkalı önlü kızartın."
+                ]
+            },
+            {
+                "title": "Şakşuka",
+                "description": "Kızarmış sebzelerin sarımsaklı domates sosuyla buluştuğu klasik meze.",
+                "category": "Meze",
+                "difficulty": "Kolay",
+                "diet_type": "Vegan",
+                "prep_time": 15,
+                "cook_time": 20,
+                "servings": 4,
+                "ingredients": [
+                    ("Patlıcan", 2, UnitType.PIECE),
+                    ("Kabak", 1, UnitType.PIECE),
+                    ("Patates", 1, UnitType.PIECE),
+                    ("Domates", 3, UnitType.PIECE),
+                    ("Sarımsak", 3, UnitType.CLOVE),
+                    ("Zeytinyağı", 0.5, UnitType.GLASS_WATER),
+                ],
+                "steps": [
+                    "Tüm sebzeleri küp küp doğrayıp sırasıyla kızartın.",
+                    "Sos tavasında sarımsaklı domates sosunu hazırlayın.",
+                    "Sebzeleri sosla harmanlayıp servis yapın."
+                ]
+            },
+            {
+                "title": "Lübnan Usulü Humus",
+                "description": "İpeksi kıvamda, bol tahinli ve sarımsaklı nohut ezmesi.",
+                "category": "Meze",
+                "difficulty": "Kolay",
+                "diet_type": "Vegan",
+                "prep_time": 15,
+                "cook_time": 0,
+                "servings": 4,
+                "ingredients": [
+                    ("Nohut", 2, UnitType.GLASS_WATER),
+                    ("Tahin", 0.5, UnitType.GLASS_TEA),
+                    ("Sarımsak", 2, UnitType.CLOVE),
+                    ("Limon Suyu", 0.5, UnitType.PIECE),
+                    ("Kimyon", 1, UnitType.TSP),
+                    ("Zeytinyağı", 2, UnitType.TBS),
+                ],
+                "steps": [
+                    "Haşlanmış nohutların kabuklarını ayıklayın.",
+                    "Blenderda tüm malzemeleri pürüzsüz olana kadar geçirin.",
+                    "Üzerine zeytinyağı ve pul biber ekleyerek servis yapın."
+                ]
+            },
+            {
+                "title": "Klasik Türk Cacığı",
+                "description": "Sarımsaklı, naneli ve buz gibi ferahlatıcı yoğurt garnitürü.",
+                "category": "Meze",
+                "difficulty": "Kolay",
+                "diet_type": "Vejetaryen",
+                "prep_time": 10,
+                "cook_time": 0,
+                "servings": 2,
+                "ingredients": [
+                    ("Yoğurt", 2, UnitType.GLASS_WATER),
+                    ("Salatalık", 2, UnitType.PIECE),
+                    ("Sarımsak", 1, UnitType.CLOVE),
+                    ("Nane", 1, UnitType.TSP),
+                    ("Zeytinyağı", 1, UnitType.TBS),
+                ],
+                "steps": [
+                    "Salatalıkları rendeleyin veya minik küpler halinde doğrayın.",
+                    "Yoğurdu suyla hafifçe inceltin, sarımsak ekleyin.",
+                    "Tüm malzemeleri karıştırıp üzerine kuru nane ve zeytinyağı dökün."
+                ]
+            },
+            {
+                "title": "Renkli Biberli Tavuk Sote",
+                "description": "Hızlı, pratik ve bol proteinli bir akşam yemeği alternatifi.",
+                "category": "Ana Yemek",
+                "difficulty": "Kolay",
+                "diet_type": None,
+                "prep_time": 10,
+                "cook_time": 15,
+                "servings": 2,
+                "ingredients": [
+                    ("Tavuk Göğsü", 400, UnitType.GRAM),
+                    ("Mantar", 100, UnitType.GRAM),
+                    ("Yeşil Biber", 2, UnitType.PIECE),
+                    ("Kırmızı Biber", 1, UnitType.PIECE),
+                    ("Domates", 1, UnitType.PIECE),
+                    ("Ayçiçek Yağı", 2, UnitType.TBS),
+                ],
+                "steps": [
+                    "Tavukları küp küp doğrayıp yüksek ateşte soteleyin.",
+                    "Sebzeleri ekleyip sotelemeye devam edin.",
+                    "Domatesleri ekleyip suyunu çekene kadar pişirin."
+                ]
+            },
+            {
+                "title": "Yayla Çorbası",
+                "description": "Midenize dost, yoğurtlu ve naneli ferahlatıcı Anadolu çorbası.",
+                "category": "Çorba",
+                "difficulty": "Kolay",
+                "diet_type": "Vejetaryen",
+                "prep_time": 5,
+                "cook_time": 20,
+                "servings": 4,
+                "ingredients": [
+                    ("Yoğurt", 1.5, UnitType.GLASS_WATER),
+                    ("Pirinç", 2, UnitType.TBS),
+                    ("Yumurta", 1, UnitType.PIECE),
+                    ("Un", 1, UnitType.TBS),
+                    ("Nane", 1, UnitType.TBS),
+                    ("Tereyağı", 1, UnitType.TBS),
+                ],
+                "steps": [
+                    "Pirinçleri haşlayın.",
+                    "Yoğurt, un ve yumurtayı çırpıp terbiye hazırlayın.",
+                    "Terbiyeye çorbanın suyundan ekleyip ılıştırarak tencereye dökün.",
+                    "Nane ve tereyağını kızdırıp üzerine gezdirin."
+                ]
+            },
+            {
+                "title": "Spaghetti Carbonara",
+                "description": "Orijinal İtalyan tarifi: Krema yok, sadece yumurta ve peynirin büyüsü.",
+                "category": "Ana Yemek",
+                "difficulty": "Orta",
+                "diet_type": None,
+                "prep_time": 10,
+                "cook_time": 10,
+                "servings": 2,
+                "ingredients": [
+                    ("Makarna", 250, UnitType.GRAM),
+                    ("Yumurta", 2, UnitType.PIECE),
+                    ("Kaşar Peyniri", 50, UnitType.GRAM),
+                    ("Karabiber", 1, UnitType.TSP),
+                ],
+                "steps": [
+                    "Makarnayı al dente haşlayın.",
+                    "Yumurta ve peyniri çırpıp sosu hazırlayın.",
+                    "Sıcak makarnayla sosu hızlıca harmanlayın (yumurtanın pişmemesi için ateşten alın)."
+                ]
             }
         ]
         
         for r_data in recipes_to_add:
-            existing = await session.execute(
-                select(recipe_repo.__getattribute__('session').bind.__class__).where(recipe_repo.__getattribute__('session').bind.__class__.title == r_data["title"])
-            ) if hasattr(recipe_repo, 'get_by_title') else None
-            # Simplest check for seeding
-            
             print(f"Processing recipe: {r_data['title']}...")
             
             items = []
@@ -196,29 +431,31 @@ async def seed_recipes():
                     text=text
                 ))
             
+            # Map strings to Domain Enums
+            category_enum = category_map.get(r_data["category"])
+            difficulty_enum = difficulty_map.get(r_data["difficulty"])
+            
             recipe = Recipe(
                 id=str(uuid.uuid4()),
                 title=r_data["title"],
                 description=r_data["description"],
                 items=items,
                 instructions=instructions,
-                category=r_data["category"],
-                difficulty=r_data["difficulty"],
+                category=category_enum,
+                difficulty=difficulty_enum,
                 diet_type=r_data["diet_type"],
                 prep_time_minutes=r_data["prep_time"],
                 cook_time_minutes=r_data["cook_time"],
                 servings=r_data["servings"],
                 status=RecipeStatus.PUBLISHED,
                 author_id=admin.id,
-                slug=slugify(r_data["title"])
+                slug=slugify(r_data["title"]) + "-" + str(uuid.uuid4())[:4]
             )
             
             await recipe_repo.save(recipe)
         
         await session.commit()
-        print("Successfully seeded all recipes.")
-
-from sqlalchemy import select
+        print("Successfully seeded all 15 recipes with standardized Enum categories.")
 
 if __name__ == "__main__":
     if sys.platform == 'win32':

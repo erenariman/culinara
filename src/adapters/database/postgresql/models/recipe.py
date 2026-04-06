@@ -3,7 +3,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from .base import Base
-from src.domain.entities.recipe import RecipeStatus
+from src.domain.entities.recipe import RecipeStatus, DifficultyLevel, RecipeCategory
 
 class RecipeIngredientModel(Base):
     __tablename__ = "recipe_ingredients"
@@ -43,8 +43,8 @@ class RecipeModel(Base):
     servings = Column(Integer, nullable=True)
     prep_time_minutes = Column(Integer, nullable=True)
     cook_time_minutes = Column(Integer, nullable=True)
-    difficulty = Column(String, nullable=True) # Easy, Medium, Hard
-    category = Column(String, nullable=True) # Breakfast, Main Course, Dessert
+    difficulty = Column(SAEnum(DifficultyLevel), nullable=True)
+    category = Column(SAEnum(RecipeCategory), nullable=True)
     diet_type = Column(String, nullable=True) # Vegan, Vegetarian
     view_count = Column(Integer, default=0)
     

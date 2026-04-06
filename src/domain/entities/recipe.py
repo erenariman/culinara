@@ -38,6 +38,19 @@ class RecipeInstruction:
     image_url: Optional[str] = None
     timer_seconds: Optional[int] = None
 
+class DifficultyLevel(str, Enum):
+    EASY = "EASY"
+    MEDIUM = "MEDIUM"
+    HARD = "HARD"
+
+class RecipeCategory(str, Enum):
+    BREAKFAST = "BREAKFAST"
+    MAIN_COURSE = "MAIN_COURSE"
+    DESSERT = "DESSERT"
+    APPETIZER = "APPETIZER"
+    SALAD = "SALAD"
+    SOUP = "SOUP"
+
 class RecipeStatus(str, Enum):
     DRAFT = "DRAFT"
     PUBLISHED = "PUBLISHED"
@@ -67,8 +80,8 @@ class Recipe:
     slug: str = ""
     status: RecipeStatus = RecipeStatus.DRAFT
     view_count: int = 0
-    difficulty: Optional[str] = None
-    category: Optional[str] = None
+    difficulty: Optional[DifficultyLevel] = None
+    category: Optional[RecipeCategory] = None
     diet_type: Optional[str] = None
     prep_time_minutes: Optional[int] = None
     cook_time_minutes: Optional[int] = None

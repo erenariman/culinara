@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional, List, Union
-from src.domain.entities.recipe import RecipeStatus
+from src.domain.entities.recipe import RecipeStatus, DifficultyLevel, RecipeCategory
 
 class RecipeCreateItem(BaseModel):
     ingredient_name: str
@@ -15,9 +15,9 @@ class RecipeCreate(BaseModel):
     title: str
     description: str
     image_url: Optional[str] = None
-    category: str
+    category: RecipeCategory
     diet_type: str
-    difficulty: str
+    difficulty: DifficultyLevel
     prep_time_minutes: int
     cook_time_minutes: int
     servings: int
@@ -29,9 +29,9 @@ class RecipeUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     image_url: Optional[str] = None
-    category: Optional[str] = None
+    category: Optional[RecipeCategory] = None
     diet_type: Optional[str] = None
-    difficulty: Optional[str] = None
+    difficulty: Optional[DifficultyLevel] = None
     prep_time_minutes: Optional[int] = None
     cook_time_minutes: Optional[int] = None
     servings: Optional[int] = None
@@ -88,9 +88,9 @@ class RecipeResponse(BaseModel):
     author_id: Optional[str]
     
     # Metadata
-    category: Optional[str] = None
+    category: Optional[RecipeCategory] = None
     diet_type: Optional[str] = None
-    difficulty: Optional[str] = None
+    difficulty: Optional[DifficultyLevel] = None
     prep_time_minutes: Optional[int] = None
     cook_time_minutes: Optional[int] = None
     servings: Optional[int] = None
