@@ -1,6 +1,6 @@
-# Recipe Project
+# Culinara Project
 
-Clean Architecture based Recipe Management System.
+Clean Architecture based Culinaria Management System.
 
 ## Setup
 1. `poetry install --no-root`

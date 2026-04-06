@@ -35,7 +35,7 @@ from src.presentation.api.v1.routers import (
 )
 from src.adapters.database.postgresql.database import get_db
 from src.config.logging import get_logging_config
-from src.domain.exceptions import RecipeAppError, ConflictError, AlreadyExistsError
+from src.domain.exceptions import CulinaraAppError, ConflictError, AlreadyExistsError
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from src.config.rate_limit import limiter, _rate_limit_exceeded_handler
@@ -71,8 +71,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Recipe AI API",
-    description="Clean Architecture based Recipe API",
+    title="Culinara API",
+    description="Clean Architecture based Culinara Platform",
     version="1.0.0",
     lifespan=lifespan,
     default_response_class=DEFAULT_RESPONSE_CLASS,
@@ -148,8 +148,8 @@ async def logging_middleware(request: Request, call_next):
 
 
 # --- Exception Handlers ---
-@app.exception_handler(RecipeAppError)
-async def recipe_app_error_handler(request: Request, exc: RecipeAppError):
+@app.exception_handler(CulinaraAppError)
+async def culinara_app_error_handler(request: Request, exc: CulinaraAppError):
     headers = {"WWW-Authenticate": "Bearer"} if exc.status_code == 401 else None
     
     return DEFAULT_RESPONSE_CLASS(
@@ -172,14 +172,14 @@ async def sqlalchemy_integrity_error_handler(request: Request, exc: IntegrityErr
         error = ConflictError(
             message="Bu öğeyi silemezsiniz çünkü başka kayıtlar (örneğin tarifler) bu öğeye bağlı."
         )
-        return await recipe_app_error_handler(request, error)
+        return await culinara_app_error_handler(request, error)
 
     # 2. Unique Constraint (Already exists error)
     if "already exists" in detail or "duplicate key" in detail:
         error = AlreadyExistsError(
             message="Bu kayıt zaten mevcut. Lütfen farklı bir isim veya e-posta deneyin."
         )
-        return await recipe_app_error_handler(request, error)
+        return await culinara_app_error_handler(request, error)
 
     # Fallback to general DB error
     log.error("Unhandled Database Integrity Error", detail=detail, exc_info=True)
@@ -228,7 +228,7 @@ app.include_router(social_router.router, prefix="/api/v1", tags=["Social"])
 
 @app.get("/")
 async def root():
-    return {"message": "Welcome to Recipe AI API"}
+    return {"message": "Welcome to Culinara API"}
 
 
 @app.get("/health")

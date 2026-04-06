@@ -12,8 +12,8 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     # Application
-    app_name: str = Field(default="RecipeApp")
-    app_description: str = Field(default="AI driven Recipe Platform")
+    app_name: str = Field(default="Culinara")
+    app_description: str = Field(default="AI driven Culinaria Platform")
     app_environment: Environment = Field(default=Environment.DEVELOPMENT)
     port: int = Field(default=8000, alias="PORT")
     allowed_origins: list[str] = Field(default=[])
@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD: str = "postgres"
     POSTGRES_SERVER: str = "localhost"
     POSTGRES_PORT: int = 5432
-    POSTGRES_DB: str = "recipe_db"
+    POSTGRES_DB: str = "culinara_db"
     
     # Connection Pool Settings
     POSTGRES_POOL_SIZE: int = 20

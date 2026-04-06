@@ -1,4 +1,4 @@
-class RecipeAppError(Exception):
+class CulinaraAppError(Exception):
     code: str = "UNSPECIFIED_ERROR"
     status_code: int = 500
 
@@ -11,7 +11,7 @@ class RecipeAppError(Exception):
     def to_dict(self) -> dict:
         return {"code": self.code, "message": self.message}
 
-class DomainError(RecipeAppError):
+class DomainError(CulinaraAppError):
     status_code = 400
 
 class EntityNotFoundError(DomainError):
@@ -53,14 +53,14 @@ class UserAlreadyExistsError(AlreadyExistsError):
     def __init__(self, message: str = "A user with the given details already exists."):
         super().__init__(message)
 
-class ConflictError(RecipeAppError):
+class ConflictError(CulinaraAppError):
     code = "RESOURCE_CONFLICT"
     status_code = 409
 
     def __init__(self, message: str = "This resource is in use or was modified elsewhere."):
         super().__init__(message)
 
-class PermissionDeniedError(RecipeAppError):
+class PermissionDeniedError(CulinaraAppError):
     code = "PERMISSION_DENIED"
     status_code = 403
 
@@ -76,7 +76,7 @@ class ValidationError(DomainError):
     def __init__(self, message: str = "Validation failed"):
         super().__init__(message)
 
-class DatabaseError(RecipeAppError):
+class DatabaseError(CulinaraAppError):
     code = "DATABASE_ERROR"
     status_code = 503
 
