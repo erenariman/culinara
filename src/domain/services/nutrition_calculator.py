@@ -23,6 +23,7 @@ class NutritionCalculatorService:
         UnitType.LITER: 1000.0,
         UnitType.GLASS_TEA: 100.0,
         UnitType.GLASS_WATER: 200.0,
+        UnitType.PINCH: 1.0, # ~1g/ml for a standard pinch
     }
 
     def calculate_grams(self, amount: float, unit: UnitType, ingredient: Ingredient) -> float:
@@ -36,24 +37,19 @@ class NutritionCalculatorService:
         if unit == UnitType.KILOGRAM:
             return amount * 1000.0
 
-        if unit == UnitType.PIECE:
+        # Units that rely on average weight (Piece, Packet, Bunch, Clove)
+        if unit in [UnitType.PIECE, UnitType.PACKET, UnitType.BUNCH, UnitType.CLOVE]:
             weight = ingredient.avg_weight_per_piece_g
             if weight is None:
-                # If piece weight is not defined, we can't calculate grams accurately
-                # Returning 0 might be misleading, but raising error is safer
-                # For compatibility with potential legacy data we might return 0
                 return 0.0
             return amount * weight
 
         # Volume-based calculation
         if unit in self.UNIT_TO_ML:
             volume_ml = amount * self.UNIT_TO_ML[unit]
-            # Physics: m = V * d
-            # Default density to 1.0 if not provided
             density = ingredient.density_g_ml or 1.0
             return volume_ml * density
             
-        # Fallback for unsupported units
         return 0.0
 
     def calculate_nutrition(self, grams: float, ingredient: Ingredient) -> NutritionInfo:

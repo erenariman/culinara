@@ -10,3 +10,7 @@ class UnitType(str, Enum):
     GLASS_TEA = "glass_tea"
     KILOGRAM = "kg"
     LITER = "l"
+    PACKET = "packet"
+    BUNCH = "bunch"
+    CLOVE = "clove"
+    PINCH = "pinch"
