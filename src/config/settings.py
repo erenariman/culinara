@@ -16,15 +16,17 @@ class Settings(BaseSettings):
     app_description: str = Field(default="AI driven Culinaria Platform")
     app_environment: Environment = Field(default=Environment.DEVELOPMENT)
     port: int = Field(default=8000, alias="PORT")
-    allowed_origins: list[str] = Field(default=[])
+    allowed_origins: list[str] | str = Field(default=[])
 
     @field_validator("allowed_origins", mode="before")
     @classmethod
     def parse_allowed_origins(cls, v: any) -> list[str]:
         if isinstance(v, str):
-            # Split comma separated string and clean it
+            # If it's a string from env (not JSON), split by comma
             return [item.strip() for item in v.split(",") if item.strip()]
-        return v
+        if isinstance(v, list):
+            return v
+        return []
 
     # Database
     DATABASE_URL: str | None = None
