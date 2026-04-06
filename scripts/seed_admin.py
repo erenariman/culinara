@@ -5,14 +5,13 @@ import os
 # Add project root to path
 sys.path.append(os.getcwd())
 
-from src.adapters.database.postgresql.database import get_session_maker
+from src.adapters.database.postgresql.database import AsyncSessionLocal
 from src.adapters.database.postgresql.repositories.user_repository import PostgresUserRepository
 from src.application.usecases.user_usecase import UserUseCase
 from src.application.ports.repositories.user_repository import UserRepositoryPort
 
 async def seed_admin():
-    print("Initializing DB session...")
-    AsyncSessionLocal = get_session_maker()
+    print("Connecting to DB...")
     
     async with AsyncSessionLocal() as session:
         repo = PostgresUserRepository(session)
