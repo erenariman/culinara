@@ -6,21 +6,28 @@ import os
 sys.path.append(os.getcwd())
 
 from src.adapters.database.postgresql.database import AsyncSessionLocal
-from src.adapters.database.postgresql.repositories.user_repository import PostgresUserRepository
+from src.adapters.database.postgresql.repositories.user_repository import PostgresUserRepository, PostgresUserProfileRepository
+from src.infrastructure.security.password_service import PasswordService
 from src.application.usecases.user_usecase import UserUseCase
-from src.application.ports.repositories.user_repository import UserRepositoryPort
 
 async def seed_admin():
     print("Connecting to DB...")
     
     async with AsyncSessionLocal() as session:
-        repo = PostgresUserRepository(session)
-        user_uc = UserUseCase(repo, None) # Profile repo can be None for registration
+        user_repo = PostgresUserRepository(session)
+        profile_repo = PostgresUserProfileRepository(session)
+        password_service = PasswordService()
+        
+        user_uc = UserUseCase(
+            user_repo=user_repo, 
+            profile_repo=profile_repo, 
+            password_service=password_service
+        )
         
         email = "admin@example.com"
-        password = "ant.design" # Default password for pro
+        password = "ant.design" 
         
-        existing = await repo.get_by_email(email)
+        existing = await user_repo.get_by_email(email)
         if existing:
             print(f"User {email} already exists.")
             return
