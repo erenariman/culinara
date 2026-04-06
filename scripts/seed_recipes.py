@@ -15,9 +15,12 @@ from src.adapters.database.postgresql.repositories.ingredient_repository import 
 from src.adapters.database.postgresql.repositories.user_repository import PostgresUserRepository
 from src.domain.entities.recipe import Recipe, RecipeItem, RecipeInstruction, RecipeStatus, RecipeCategory, DifficultyLevel
 from src.domain.entities.units import UnitType
+from src.domain.services.nutrition_calculator import NutritionCalculatorService
 
 async def seed_recipes():
     print("Connecting to database...")
+    nutrition_service = NutritionCalculatorService()
+    
     async with AsyncSessionLocal() as session:
         recipe_repo = PostgresRecipeRepository(session)
         ing_repo = PostgresIngredientRepository(session)
@@ -29,7 +32,7 @@ async def seed_recipes():
             print("Admin user not found. Please run seed_admin.py first.")
             return
         
-        # Mappings for Turkish terms to Domain Enums
+        # Mappings for Turkish terms to Domain Enums (Keeping Backend English)
         category_map = {
             "Çorba": RecipeCategory.SOUP,
             "Kahvaltılık": RecipeCategory.BREAKFAST,
@@ -418,11 +421,25 @@ async def seed_recipes():
             print(f"Processing recipe: {r_data['title']}...")
             
             items = []
+            recipe_total_calories = 0.0
+            recipe_total_protein = 0.0
+            recipe_total_carbs = 0.0
+            recipe_total_fat = 0.0
+            
             for ing_name, amount, unit in r_data["ingredients"]:
                 ing = await get_ing(ing_name)
                 if ing:
                     items.append(RecipeItem(ingredient=ing, amount=amount, unit=unit))
-            
+                    
+                    # Calculate nutrition for this item
+                    grams = nutrition_service.calculate_grams(amount, unit, ing)
+                    info = nutrition_service.calculate_nutrition(grams, ing)
+                    
+                    recipe_total_calories += info.calories
+                    recipe_total_protein += info.protein
+                    recipe_total_carbs += info.carbs
+                    recipe_total_fat += info.fat
+
             instructions = []
             for idx, text in enumerate(r_data["steps"]):
                 instructions.append(RecipeInstruction(
@@ -447,6 +464,13 @@ async def seed_recipes():
                 prep_time_minutes=r_data["prep_time"],
                 cook_time_minutes=r_data["cook_time"],
                 servings=r_data["servings"],
+                
+                # Nutritional values calculated from ingredients
+                total_calories=round(recipe_total_calories, 2),
+                total_protein=round(recipe_total_protein, 2),
+                total_carbs=round(recipe_total_carbs, 2),
+                total_fat=round(recipe_total_fat, 2),
+                
                 status=RecipeStatus.PUBLISHED,
                 author_id=admin.id,
                 slug=slugify(r_data["title"]) + "-" + str(uuid.uuid4())[:4]
@@ -455,7 +479,7 @@ async def seed_recipes():
             await recipe_repo.save(recipe)
         
         await session.commit()
-        print("Successfully seeded all 15 recipes with standardized Enum categories.")
+        print("Successfully seeded all 15 recipes with calculated calories and Enums.")
 
 if __name__ == "__main__":
     if sys.platform == 'win32':
