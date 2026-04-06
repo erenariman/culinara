@@ -1,5 +1,5 @@
 from enum import Enum
-from pydantic import Field, PostgresDsn
+from pydantic import Field, PostgresDsn, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Environment(Enum):
@@ -17,6 +17,14 @@ class Settings(BaseSettings):
     app_environment: Environment = Field(default=Environment.DEVELOPMENT)
     port: int = Field(default=8000, alias="PORT")
     allowed_origins: list[str] = Field(default=[])
+
+    @field_validator("allowed_origins", mode="before")
+    @classmethod
+    def parse_allowed_origins(cls, v: any) -> list[str]:
+        if isinstance(v, str):
+            # Split comma separated string and clean it
+            return [item.strip() for item in v.split(",") if item.strip()]
+        return v
 
     # Database
     DATABASE_URL: str | None = None
